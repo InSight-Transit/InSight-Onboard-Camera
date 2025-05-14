@@ -18,6 +18,8 @@ if not cap.isOpened():
 
 API_URL = "http://localhost:8000/api/payfare"
 
+processed_faces = []
+
 while True:
     ret, frame = cap.read()
  
@@ -29,13 +31,21 @@ while True:
 
     faces = faceCascade.detectMultiScale(gray, 1.1, 4)
 
+    print(processed_faces)
+
     current_time = time.time()
     if len(faces) > 0 and (current_time - last_request_time >= request_interval):  # If at least one face is detected
         last_request_time = current_time
         print(f"Detected {len(faces)} face(s). Sending API requests")
 
         for i, (x, y, w, h) in enumerate(faces):
-            if w * h > 3000:
+            # Check if the face has already been processed
+            face_id = (x, y, w, h)  # Use the bounding box as a unique identifier
+            if face_id in processed_faces:
+                print(f"Skipping already processed face: {face_id}")
+                continue
+
+            if w * h > 3000:  # Minimum size filter
                 print(w * h)
 
                 # Crop face region to reduce file size
@@ -59,6 +69,8 @@ while True:
                                 if account_id:
                                     print(f"User {account_id} successful.")
                                     playsound("./sounds/accept.mp3")
+                                    # Mark this face as processed
+                                    processed_faces.append(face_id)
                                 else:
                                     print("Account ID not found in the response.")
                                     playsound("./sounds/error.mp3")
